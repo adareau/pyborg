@@ -1,0 +1,47 @@
+[build-system]
+requires = ["setuptools>=61.0"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "pyborg"
+version = "0.1.0"
+description = "A wrapper for borgbackup scripts"
+authors = [
+    {name = "Alexandre Dareau",email = "alexandre.dareau@protonmail.com"}
+]
+maintainers = [
+  {name = "Alexandre Dareau", email = "alexandre.dareau@protonmail.com"}
+]
+readme = "README.md"
+license = { text = "GPL-3.0-or-later"}
+keywords = ["borgbackup", "backups"]
+
+classifiers = [
+  # How mature is this project? Common values are
+  #   3 - Alpha
+  #   4 - Beta
+  #   5 - Production/Stable
+  "Development Status :: 3 - Beta",
+
+  # Indicate who your project is intended for
+  "Intended Audience :: End Users/Desktop",
+  "Topic :: System :: Archiving :: Backup",
+
+  # Specify the Python versions you support here.
+  "Programming Language :: Python :: 3",
+  "Programming Language :: Python :: 3.10",
+]
+
+
+requires-python = ">=3.12"
+dependencies = [
+    "typer==0.15.1",
+]
+
+[project.scripts]
+pyborg = "pyborg.cli:app"
+
+[project.urls]
+Homepage = "https://github.com/adareau/pyborg"
+Repository = "https://github.com/adareau/pyborg.git"
+Issues = "https://github.com/adareau/pyborg/issues"

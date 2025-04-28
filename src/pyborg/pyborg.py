@@ -173,6 +173,49 @@ def mount(
 
 
 @app.command()
+def save(
+    profile: Annotated[str, typer.Argument(help="Profile to mount")],
+    dry_run: Annotated[
+        bool,
+        typer.Option(
+            "--dry",
+            "-d",
+            help="performs a dry run",
+        ),
+    ] = False,
+):
+    """
+    [blue]Creates[/blue] a new backup
+    """
+    # -- get profile info
+    profile_info = load_profile(profile)
+
+    # -- prepare prompt
+    # arguments
+    repository = profile_info["repository"]
+    source = profile_info["source"]
+    save_fmt = profile_info["save_fmt"]
+    option = profile_info["option"]
+    compression = profile_info["compression"]
+    if dry_run > 0:
+        dry = "--dry-run"
+    else:
+        dry = ""
+    if profile_info["sudo"].upper() == "TRUE":
+        sudo = "sudo "
+    else:
+        sudo = ""
+    print(sudo)
+
+    # prompt
+    prompt = f"{sudo} borg create {dry} --progress -v --stats --compression {compression} {option} {repository}::{save_fmt} {source}"
+    # -- print and execute
+    print(f"[bold blue]Running :[/bold blue] $> {prompt}")
+    typer.confirm("Shall we proceed ?", abort=True)
+    subprocess.run(prompt, shell=True)
+
+
+@app.command()
 def umount(
     target: Annotated[
         Path,
@@ -259,7 +302,7 @@ def init():
         "source": "/path/to/backup/source",
         "repository": "/path/to/borg/repo",
         "save_fmt": r"{now:%Y-%m-%d_%H:%M:%S}_{hostname}",
-        "option": "--exclude-from ~/.config/pyborg/.borg-exclude",
+        "option": "--exclude-from ~/.config/pyborg/borg-exclude",
         "compression": "lz4,7",
     }
 

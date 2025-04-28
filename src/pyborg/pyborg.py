@@ -10,7 +10,7 @@ Comments:
 # % IMPORTS
 
 # std library
-import sys
+import subprocess
 import configparser
 from pathlib import Path
 
@@ -25,7 +25,15 @@ from rich import print
 # configuration files
 CONFIG_DIR = Path.home() / ".config" / "pyborg"
 PROFILES_FILE = CONFIG_DIR / "profiles.cfg"
-
+REQUIRED_FIELDS = [
+    "description",
+    "sudo",
+    "source",
+    "repository",
+    "save_fmt",
+    "option",
+    "compression",
+]
 # display
 HEADER = ". [green]{}[/green]\n"
 PARAM = "  ├── {} : {}\n"
@@ -36,6 +44,45 @@ LPARAM = "  └── {} : {}\n"
 app = typer.Typer(
     context_settings={"help_option_names": ["-h", "--help"]}, no_args_is_help=True
 )
+
+
+# % FUNCTIONS
+
+
+def load_profile(profile: str):
+    """
+    Loads a given profile
+    """
+    # -- check if config file exists
+    if not PROFILES_FILE.is_file():
+        msg = f"Cannot find the profile config file at '{PROFILES_FILE}'. "
+        msg += "You can initialize a config file using `pyborg init`."
+        print(msg)
+        raise typer.Abort()
+
+    # -- load
+    config = configparser.ConfigParser(interpolation=None)
+    config.read(PROFILES_FILE)
+
+    # -- does the profile exist ?
+    if profile not in config.sections():
+        print(f"[bold red]Error :[/bold red]  Cannot find profile '{profile}' !")
+        print(f">> available profiles : [green]{', '.join(config.sections())}[/green]")
+        raise typer.Abort()
+
+    # -- load profile
+    profile_info = config[profile]
+
+    # -- check all fields are here
+    for field in REQUIRED_FIELDS:
+        if field not in profile_info:
+            print(
+                f"[bold red]Error :[/bold red]  missing field for profile '{profile}' !"
+            )
+            print(f">> required field '{field}' not found !")
+            raise typer.Abort()
+
+    return profile_info
 
 
 # % DEFINE COMMANDS
@@ -80,8 +127,110 @@ def profiles(
 
 
 @app.command()
-def list(profile: str):
-    print("goodbye")
+def mount(
+    profile: Annotated[str, typer.Argument(help="Profile to mount")],
+    target: Annotated[
+        Path,
+        typer.Option(
+            "--target",
+            "-t",
+            exists=False,
+            file_okay=False,
+            dir_okay=True,
+            writable=True,
+            resolve_path=True,
+            help="where to mount",
+        ),
+    ] = Path("/mnt/borg"),
+    last: Annotated[
+        int,
+        typer.Option(
+            "--last",
+            "-l",
+            help="consider last N archives after other filters were applied",
+        ),
+    ] = 0,
+):
+    """
+    [blue]Mounts[/blue] a borg repository
+    """
+    # -- get profile info
+    profile_info = load_profile(profile)
+
+    # -- prepare prompt
+    # arguments
+    if last > 0:
+        opt = f"--last {last} "
+    else:
+        opt = ""
+    repo = profile_info["repository"]
+    # prompt
+    prompt = f"borg mount {opt}{repo} {target}"
+
+    # -- print and execute
+    print(f"[bold blue]Running :[/bold blue] $> {prompt}")
+    subprocess.run(prompt, shell=True)
+
+
+@app.command()
+def umount(
+    target: Annotated[
+        Path,
+        typer.Option(
+            "--target",
+            "-t",
+            exists=False,
+            file_okay=False,
+            dir_okay=True,
+            resolve_path=True,
+            help="target to unmount",
+        ),
+    ] = Path("/mnt/borg")
+):
+    """
+    [blue]Unmounts[/blue] a borg repository
+    """
+
+    # prompt
+    prompt = f"borg umount {target}"
+
+    # -- print and execute
+    print(f"[bold blue]Running :[/bold blue] $> {prompt}")
+    subprocess.run(prompt, shell=True)
+
+
+@app.command()
+def list(
+    profile: Annotated[str, typer.Argument(help="Profile to mount")],
+    last: Annotated[
+        int,
+        typer.Option(
+            "--last",
+            "-l",
+            help="consider last N archives after other filters were applied",
+        ),
+    ] = 0,
+):
+    """
+    [blue]Lists[/blue] the content of a borg repository
+    """
+    # -- get profile info
+    profile_info = load_profile(profile)
+
+    # -- prepare prompt
+    # arguments
+    if last > 0:
+        opt = f"--last {last} "
+    else:
+        opt = ""
+    repo = profile_info["repository"]
+    # prompt
+
+    prompt = f"borg list {opt}{repo}"
+
+    # -- print and execute
+    print(f"[bold blue]Running :[/bold blue] $> {prompt}")
+    subprocess.run(prompt, shell=True)
 
 
 @app.command(rich_help_panel="Configs")
